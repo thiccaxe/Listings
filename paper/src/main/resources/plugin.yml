@@ -1,0 +1,18 @@
+main: net.thiccaxe.listings.paper.ListingsPaper
+name: Listings
+version: 1.1.0
+author: thiccaxe
+depend:
+  - PlaceholderAPI
+api-version: 1.16
+commands:
+  listings:
+    description: "commands for listings"
+permissions:
+  listings.*:
+    description: "all listings permissions"
+    default: false
+  listings.reload:
+    description: "reload config"
+    default: false
+
