@@ -30,6 +30,144 @@ public class Formatter {
     public static final String PURPLE = SECTION + "5";
 
 
+    private static List<List<Text>> createPlayerColumns(List<Text> players, int columnCapacity) {
+
+        // Does NOT mutate provided List
+
+        final List<List<Text>> rows = new LinkedList<>();
+        final int columnCount = players.size() / columnCapacity + (players.size() % columnCapacity == 0 ? 0 : 1);
+
+        for (int r = 0; r < columnCapacity; r ++) {
+            final List<Text> column = new LinkedList<>();
+            for (int c = 0; c < columnCount; c ++) {
+                column.add(c * columnCapacity + r < players.size() ? players.get(c * columnCapacity + r).copy() : new Text("\0"));
+            }
+            rows.add(column);
+        }
+        return rows;
+
+        /* Code for building columns (90deg rotated)
+        final List<List<Text>> columns = new LinkedList<>();
+        final int columnCount = players.size() / columnCapacity + (players.size() % columnCapacity == 0 ? 0 : 1);
+
+        for (int c = 0; c < columnCount; c++) {
+            final List<Text> row = new LinkedList<>();
+            final int columnOffset = c*columnCount;
+            for (int r = 0; r < columnCapacity; r++) {
+                row.add(columnOffset + r < players.size() ? players.get(columnOffset + r) : new Text("\0"));
+            }
+            columns.add(row);
+        }
+        return columns;
+         */
+    }
+
+    private static List<List<Text>> applyPlayerColumnPadding(List<List<Text>> rows, JustifyType justifyType) {
+
+        // Mutates provided List
+
+        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
+        for (int row = 0; row < rows.size(); row ++) {
+            final List<Text> rowList = rows.get(row);
+            final int columnSize = rowList.size();
+            for (int col = 0; col < columnSize; col ++) {
+                columnWidths.put(col, Math.max(columnWidths.getOrDefault(col, 0), rowList.get(col).length()));
+            }
+
+        }
+        for (List<Text> row : rows) {
+            for (int column = 0; column < row.size(); column ++) {
+                final int columnWidth = columnWidths.get(column);
+                final Text col = row.get(column);
+                switch (justifyType) {
+                    default:
+                    case LEFT:
+                        col.prepend(RESET);
+                        col.append(BLACK + DefaultFont.getPadding(columnWidth - col.length()) + RESET);
+                        break;
+                    case RIGHT:
+                        col.prepend(RESET + BLACK + DefaultFont.getPadding(columnWidth - col.length()) + RESET);
+                        col.append(RESET);
+                        break;
+                    case CENTER:
+                        String padding = DefaultFont.getPadding((columnWidth - col.length())/2);
+                        col.prepend(RESET + BLACK + padding + RESET);
+                        col.append(RESET + BLACK + padding + RESET);
+                        break;
+                }
+            }
+        }
+
+
+        /* Code for columns (90deg rotation)
+        for (List<Text> column : columns) {
+            int columnWidth = 0;
+            for (Text row : column) {
+                columnWidth = Math.max(columnWidth, row.length());
+            }
+            for (Text row : column) {
+                switch (justifyType) {
+                    default:
+                    case LEFT:
+                        row.prepend(RESET);
+                        row.append(BLACK + DefaultFont.getPadding(columnWidth - row.length()) + RESET);
+                        break;
+                    case RIGHT:
+                        row.prepend(RESET + BLACK + DefaultFont.getPadding(columnWidth - row.length()) + RESET);
+                        row.append(RESET);
+                        break;
+                    case CENTER:
+                        String padding = DefaultFont.getPadding((columnWidth - row.length())/2);
+                        row.prepend(RESET + BLACK + padding + RESET);
+                        row.append(RESET + BLACK + padding + RESET);
+                        break;
+                }
+            }
+
+        }
+
+         */
+        return rows;
+    }
+
+    public static List<Text> createColumnGroup(List<Text> players, List<Text> info, Text header, Text footer, int columnCapacity, int rowCapacity, JustifyType justifyType) {
+        columnCapacity = Math.max(info.size(), columnCapacity);
+        List<List<Text>> rows = applyPlayerColumnPadding(createPlayerColumns(players, columnCapacity), justifyType);
+        List<Text> sample = new LinkedList<>();
+
+
+        final List<Text> paddedInfo = new LinkedList<>();
+        applyPlayerColumnPadding(createPlayerColumns(info, columnCapacity), JustifyType.CENTER).forEach(row -> paddedInfo.add(Text.assemble(row)));
+        System.out.println(paddedInfo);
+        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
+        for (final List<Text> rowList : rows) {
+            final int columnSize = rowList.size();
+            for (int col = 0; col < columnSize; col++) {
+                columnWidths.put(col, Math.max(columnWidths.getOrDefault(col, 0), rowList.get(col).length()));
+            }
+
+        }
+        int totalLength = 0;
+        for (int r = 0; r < rows.size(); r ++) {
+            List<Text> row = rows.get(r);
+            if (r < paddedInfo.size()) {
+                row.add(paddedInfo.get(r));
+            }
+            Text text = Text.assemble(row);
+            totalLength = Math.max(totalLength, text.length());
+            sample.add(text);
+        }
+        System.out.println(totalLength);
+        totalLength = Math.max(totalLength, header.length());
+        String padding = DefaultFont.getPadding((totalLength-header.length()));
+        header.prepend(RESET + BLACK + padding + RESET);
+        header.append(RESET + BLACK + padding + RESET);
+        sample.add(0, header);
+        return sample;
+
+    }
+
+
 
     private static List<Text> createColumnGroup(List<Text> players, Text header, Text footer, int columnCapacity, int rowCapacity, boolean justifyLeft) {
         int totalCapacity = columnCapacity * rowCapacity;

@@ -6,6 +6,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.thiccaxe.listings.Formatter;
+import net.thiccaxe.listings.JustifyType;
 import net.thiccaxe.listings.Text;
 import net.thiccaxe.listings.paper.config.Configuration;
 import org.bukkit.Bukkit;
@@ -30,7 +31,7 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
     private final List<Text> info = new LinkedList<>();
     private final Text header = new Text("");
     private final Text footer = new Text("");
-    private Boolean playerJustify = null;
+    private JustifyType playerJustify = null;
     private String playerFormat = null;
 
 
@@ -90,7 +91,7 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
             );
         }
         if (playerJustify == null) {
-            playerJustify = configuration.getBoolean("Justify", true);
+            playerJustify = JustifyType.getType(configuration.getString("Justify", "left"));
         }
         if (playerFormat == null) {
             playerFormat = Objects.requireNonNull(configuration.getString("Player", "%player_name%"));
@@ -111,8 +112,9 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
                 }
         );
 
+        Formatter.createColumnGroup(players, info, header.copy(), footer.copy(), 20, 2, playerJustify).forEach(row -> hover.add(Bukkit.createProfile(UUID.randomUUID(), row.name().replace("\0", ""))));
 
-        Formatter.format(players, info, header.copy(), footer.copy(), playerJustify).forEach(row -> hover.add(Bukkit.createProfile(UUID.randomUUID(), row)));
+        //Formatter.format(players, info, header.copy(), footer.copy(), playerJustify).forEach(row -> hover.add(Bukkit.createProfile(UUID.randomUUID(), row)));
 
 
     }
