@@ -1,5 +1,7 @@
 package net.thiccaxe.listings.paper.config;
 
+import net.thiccaxe.listings.ListingsPlugin;
+import net.thiccaxe.listings.config.Configuration;
 import net.thiccaxe.listings.paper.ListingsPaper;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -8,10 +10,19 @@ import org.yaml.snakeyaml.error.YAMLException;
 import java.io.File;
 import java.io.IOException;
 
-public class Configuration extends YamlConfiguration {
+
+public class PaperConfiguration extends Configuration {
+    public PaperConfiguration(File dataFolder, ListingsPlugin plugin) {
+        super(dataFolder, plugin);
+    }
+
+}
+
+/*
+public class PaperConfiguration extends YamlConfiguration {
 
 
-    public Configuration(File dataFolder) {
+    public PaperConfiguration(File dataFolder) {
         try {
             if (!dataFolder.exists()) {
                 dataFolder.mkdirs();
@@ -88,3 +99,6 @@ public class Configuration extends YamlConfiguration {
     }
 
 }
+
+
+ */

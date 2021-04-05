@@ -40,6 +40,10 @@ configure(subprojects.findAll {it.name != "examples"}) {
         maven {
             url = "https://hub.spigotmc.org/nexus/content/groups/public/"
         }
+        maven {
+            name 'velocity'
+            url 'https://nexus.velocitypowered.com/repository/maven-public/'
+        }
     }
 
 

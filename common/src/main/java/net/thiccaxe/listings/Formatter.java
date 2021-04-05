@@ -30,7 +30,7 @@ public class Formatter {
     public static final String PURPLE = SECTION + "5";
 
 
-    private static List<List<Text>> createPlayerColumns(List<Text> players, int columnCapacity) {
+    private static List<List<Text>> createPlayerColumns(List<Text> players, int columnCapacity, boolean skipNullString) {
 
         // Does NOT mutate provided List
 
@@ -38,12 +38,21 @@ public class Formatter {
         final int columnCount = players.size() / columnCapacity + (players.size() % columnCapacity == 0 ? 0 : 1);
 
         for (int r = 0; r < columnCapacity; r ++) {
-            final List<Text> column = new LinkedList<>();
+            final List<Text> columns = new LinkedList<>();
             for (int c = 0; c < columnCount; c ++) {
-                column.add(c * columnCapacity + r < players.size() ? players.get(c * columnCapacity + r).copy() : new Text("\0"));
+                if (c * columnCapacity + r < players.size()) {
+                    columns.add(players.get(c * columnCapacity + r).copy());
+                } else {
+                    if (!skipNullString) {
+                        columns.add(new Text("\0"));
+                    }
+                }
             }
-            rows.add(column);
+            if (!(skipNullString && columns.isEmpty())) {
+                rows.add(columns);
+            }
         }
+        //System.out.println(rows);
         return rows;
 
         /* Code for building columns (90deg rotated)
@@ -97,6 +106,7 @@ public class Formatter {
                 }
             }
         }
+        //System.out.println(rows);
 
 
         /* Code for columns (90deg rotation)
@@ -132,15 +142,17 @@ public class Formatter {
 
     public static List<Text> createColumnGroup(List<Text> players, List<Text> info, Text header, Text footer, int columnCapacity, int rowCapacity, JustifyType justifyType) {
         columnCapacity = Math.max(info.size(), columnCapacity);
-        List<List<Text>> rows = applyPlayerColumnPadding(createPlayerColumns(players, columnCapacity), justifyType);
+        List<List<Text>> rows = applyPlayerColumnPadding(createPlayerColumns(players, columnCapacity, false), justifyType);
         List<Text> sample = new LinkedList<>();
 
 
         final List<Text> paddedInfo = new LinkedList<>();
-        applyPlayerColumnPadding(createPlayerColumns(info, columnCapacity), JustifyType.CENTER).forEach(row -> paddedInfo.add(Text.assemble(row)));
-        System.out.println(paddedInfo);
+        applyPlayerColumnPadding(createPlayerColumns(info, columnCapacity, true), JustifyType.CENTER).forEach(row -> paddedInfo.add(Text.assemble(row)));
+        //System.out.println(paddedInfo.size());
         final HashMap<Integer, Integer> columnWidths = new HashMap<>();
+        boolean playersEmpty = true;
         for (final List<Text> rowList : rows) {
+            playersEmpty = playersEmpty && rowList.isEmpty();
             final int columnSize = rowList.size();
             for (int col = 0; col < columnSize; col++) {
                 columnWidths.put(col, Math.max(columnWidths.getOrDefault(col, 0), rowList.get(col).length()));
@@ -150,14 +162,20 @@ public class Formatter {
         int totalLength = 0;
         for (int r = 0; r < rows.size(); r ++) {
             List<Text> row = rows.get(r);
-            if (r < paddedInfo.size()) {
-                row.add(paddedInfo.get(r));
+            if (playersEmpty) {
+                if (r < paddedInfo.size()) {
+                    sample.add(paddedInfo.get(r));
+                }
+            } else {
+                if (r < paddedInfo.size()) {
+                    row.add(paddedInfo.get(r));
+                }
+                Text text = Text.assemble(row);
+                totalLength = Math.max(totalLength, text.length());
+                sample.add(text);
             }
-            Text text = Text.assemble(row);
-            totalLength = Math.max(totalLength, text.length());
-            sample.add(text);
         }
-        System.out.println(totalLength);
+        //System.out.println(totalLength);
         totalLength = Math.max(totalLength, header.length());
         String padding = DefaultFont.getPadding((totalLength-header.length()));
         header.prepend(RESET + BLACK + padding + RESET);

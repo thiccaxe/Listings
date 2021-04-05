@@ -1,4 +1,5 @@
 rootProject.name = 'Listings'
 include 'paper'
 include 'common'
+include 'velocity'
 
