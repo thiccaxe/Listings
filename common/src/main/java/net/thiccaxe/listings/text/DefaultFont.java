@@ -1,5 +1,7 @@
-package net.thiccaxe.listings;
+package net.thiccaxe.listings.text;
 
+
+import net.thiccaxe.listings.Formatter;
 
 public enum DefaultFont {
     A('A', 5),
@@ -116,11 +118,12 @@ public enum DefaultFont {
         return this.length+1;
     }
 
-    public static int getStringLength(String name) {
+    public static int getStringLength(String name, boolean bold) {
         name = name.replaceAll( Formatter.SECTION + "[a-f0-9klmnor]", "");
         int len = 0;
         for(int i = 0, n = name.length() ; i < n ; i++) {
-            len += (getDefaultFontInfo(name.charAt(i)).length + 1);
+            DefaultFont defaultFont = getDefaultFontInfo(name.charAt(i));
+            len += bold ? defaultFont.getBoldLength() : defaultFont.getLength();
         }
         return len;
     }

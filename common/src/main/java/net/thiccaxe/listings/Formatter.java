@@ -1,11 +1,13 @@
 package net.thiccaxe.listings;
 
 
+import net.thiccaxe.listings.text.DefaultFont;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Formatter {
-    public static final String SECTION = String.valueOf((char)0x00a7);
+    public static final String SECTION = String.valueOf((char) 0x00a7);
     public static final String OBSCURED = SECTION + "k";
     public static final String BOLD = SECTION + "l";
     public static final String STRIKETHROUGH = SECTION + "m";
@@ -29,453 +31,141 @@ public class Formatter {
     public static final String PINK = SECTION + "d";
     public static final String PURPLE = SECTION + "5";
 
-
-    private static List<List<Text>> createPlayerColumns(List<Text> players, int columnCapacity, boolean skipNullString) {
-
-        // Does NOT mutate provided List
-
-        final List<List<Text>> rows = new LinkedList<>();
-        final int columnCount = players.size() / columnCapacity + (players.size() % columnCapacity == 0 ? 0 : 1);
-
-        for (int r = 0; r < columnCapacity; r ++) {
-            final List<Text> columns = new LinkedList<>();
-            for (int c = 0; c < columnCount; c ++) {
-                if (c * columnCapacity + r < players.size()) {
-                    columns.add(players.get(c * columnCapacity + r).copy());
-                } else {
-                    if (!skipNullString) {
-                        columns.add(new Text("\0"));
-                    }
-                }
-            }
-            if (!(skipNullString && columns.isEmpty())) {
-                rows.add(columns);
-            }
+    public static List<String> format(List<String> players, List<String> info, String header, String footer, String extra, int maxColumns, int maxRows, JustifyType justifyType) {
+        int columnCapacity = Math.max(info.size(), maxRows);
+        boolean overflow = false;
+        if (players.size() > maxColumns * columnCapacity) {
+            overflow = true;
+            players.subList(maxColumns*columnCapacity, players.size()-1).clear();
         }
-        //System.out.println(rows);
-        return rows;
-
-        /* Code for building columns (90deg rotated)
-        final List<List<Text>> columns = new LinkedList<>();
-        final int columnCount = players.size() / columnCapacity + (players.size() % columnCapacity == 0 ? 0 : 1);
-
-        for (int c = 0; c < columnCount; c++) {
-            final List<Text> row = new LinkedList<>();
-            final int columnOffset = c*columnCount;
-            for (int r = 0; r < columnCapacity; r++) {
-                row.add(columnOffset + r < players.size() ? players.get(columnOffset + r) : new Text("\0"));
-            }
-            columns.add(row);
-        }
-        return columns;
-         */
-    }
-
-    private static List<List<Text>> applyPlayerColumnPadding(List<List<Text>> rows, JustifyType justifyType) {
-
-        // Mutates provided List
-
-        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
-        for (int row = 0; row < rows.size(); row ++) {
-            final List<Text> rowList = rows.get(row);
-            final int columnSize = rowList.size();
-            for (int col = 0; col < columnSize; col ++) {
-                columnWidths.put(col, Math.max(columnWidths.getOrDefault(col, 0), rowList.get(col).length()));
-            }
-
-        }
-        for (List<Text> row : rows) {
-            for (int column = 0; column < row.size(); column ++) {
-                final int columnWidth = columnWidths.get(column);
-                final Text col = row.get(column);
-                switch (justifyType) {
-                    default:
-                    case LEFT:
-                        col.prepend(RESET);
-                        col.append(BLACK + DefaultFont.getPadding(columnWidth - col.length()) + RESET);
-                        break;
-                    case RIGHT:
-                        col.prepend(RESET + BLACK + DefaultFont.getPadding(columnWidth - col.length()) + RESET);
-                        col.append(RESET);
-                        break;
-                    case CENTER:
-                        String padding = DefaultFont.getPadding((columnWidth - col.length())/2);
-                        col.prepend(RESET + BLACK + padding + RESET);
-                        col.append(RESET + BLACK + padding + RESET);
-                        break;
-                }
-            }
-        }
-        //System.out.println(rows);
-
-
-        /* Code for columns (90deg rotation)
-        for (List<Text> column : columns) {
-            int columnWidth = 0;
-            for (Text row : column) {
-                columnWidth = Math.max(columnWidth, row.length());
-            }
-            for (Text row : column) {
-                switch (justifyType) {
-                    default:
-                    case LEFT:
-                        row.prepend(RESET);
-                        row.append(BLACK + DefaultFont.getPadding(columnWidth - row.length()) + RESET);
-                        break;
-                    case RIGHT:
-                        row.prepend(RESET + BLACK + DefaultFont.getPadding(columnWidth - row.length()) + RESET);
-                        row.append(RESET);
-                        break;
-                    case CENTER:
-                        String padding = DefaultFont.getPadding((columnWidth - row.length())/2);
-                        row.prepend(RESET + BLACK + padding + RESET);
-                        row.append(RESET + BLACK + padding + RESET);
-                        break;
-                }
-            }
-
-        }
-
-         */
-        return rows;
-    }
-
-    public static List<Text> createColumnGroup(List<Text> players, List<Text> info, Text header, Text footer, int columnCapacity, int rowCapacity, JustifyType justifyType) {
-        columnCapacity = Math.max(info.size(), columnCapacity);
-        List<List<Text>> rows = applyPlayerColumnPadding(createPlayerColumns(players, columnCapacity, false), justifyType);
-        List<Text> sample = new LinkedList<>();
-
-
-        final List<Text> paddedInfo = new LinkedList<>();
-        applyPlayerColumnPadding(createPlayerColumns(info, columnCapacity, true), JustifyType.CENTER).forEach(row -> paddedInfo.add(Text.assemble(row)));
-        //System.out.println(paddedInfo.size());
-        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
-        boolean playersEmpty = true;
-        for (final List<Text> rowList : rows) {
-            playersEmpty = playersEmpty && rowList.isEmpty();
-            final int columnSize = rowList.size();
-            for (int col = 0; col < columnSize; col++) {
-                columnWidths.put(col, Math.max(columnWidths.getOrDefault(col, 0), rowList.get(col).length()));
-            }
-
-        }
-        int totalLength = 0;
-        for (int r = 0; r < rows.size(); r ++) {
-            List<Text> row = rows.get(r);
-            if (playersEmpty) {
-                if (r < paddedInfo.size()) {
-                    sample.add(paddedInfo.get(r));
-                }
-            } else {
-                if (r < paddedInfo.size()) {
-                    row.add(paddedInfo.get(r));
-                }
-                Text text = Text.assemble(row);
-                totalLength = Math.max(totalLength, text.length());
-                sample.add(text);
-            }
-        }
-        //System.out.println(totalLength);
-        totalLength = Math.max(totalLength, header.length());
-        String padding = DefaultFont.getPadding((totalLength-header.length()));
-        header.prepend(RESET + BLACK + padding + RESET);
-        header.append(RESET + BLACK + padding + RESET);
-        sample.add(0, header);
-        return sample;
-
-    }
-
-
-
-    private static List<Text> createColumnGroup(List<Text> players, Text header, Text footer, int columnCapacity, int rowCapacity, boolean justifyLeft) {
-        int totalCapacity = columnCapacity * rowCapacity;
-        boolean addFooter = false;
-        int extraPlayers = Math.abs(players.size() - totalCapacity);
-        if (players.size() > totalCapacity) {
-            players.subList(totalCapacity, players.size()).clear();
-            addFooter = true;
-        }
-
-        players.addAll(Collections.nCopies(columnCapacity - (players.size() % columnCapacity), new Text("\0")));
-
-        final int columnCount = players.size() / columnCapacity;
-
-
-
-        // Determine the widths of each column. Store them in a map for later use.
-
-        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
-
-        for (int col = 0; col < columnCount; col++) {
-            int columnWidth = 0;
-            for (int row = 0; row < columnCapacity; row++) {
-                columnWidth = Math.max(columnWidth, players.get(col * columnCapacity + row).length());
-            }
-            columnWidths.put(col, columnWidth);
-        }
-
-        // Assemble each entry into the rows.
-        final List<List<Text>> rows = new LinkedList<>();
-
-        int totalWidth = 0;
-        HashMap<Integer, Integer> finalColumnWidths = new HashMap<>();
-
-
-        for (int row = 0; row < columnCapacity; row++) {
-            final List<Text> rowContent = new LinkedList<>();
-            for (int col = 0; col < columnCount; col++) {
-
-                final Text text = players.get(col * columnCapacity + row);
-                text.name(text.name().replace("\0", ""));
-                final String name = text.name();
-                final int len = text.length();
-                if (justifyLeft) {
-                    text.name(RESET + name + BLACK + DefaultFont.getPadding(
-                            columnWidths.get(col) - len
-                    ) + RESET);
-                } else {
-                    text.name(RESET + BLACK + DefaultFont.getPadding(
-                            columnWidths.get(col) - len
-                    ) + RESET + name + RESET);
-                }
-
-                finalColumnWidths.put(col, Math.max(finalColumnWidths.getOrDefault(col, 0), text.length()));
-
-                rowContent.add(text);
-            }
-            //System.out.println(rowContent + " <");
-            rows.add(rowContent);
-        }
-        for (int width : finalColumnWidths.values()) {
-            totalWidth += width;
-        }
-
-        final List<Text> assembledRows = new LinkedList<>();
-        if (header.length() > 0) {
-            header.name(DefaultFont.center(header.name(), header.length(), totalWidth));
-            assembledRows.add(header);
-        }
-        rows.forEach(row -> {
-            assembledRows.add(Text.assemble(row));
-        });
-        if (addFooter && footer.length() > 0) {
-            footer.name(footer.name().replace("{X}", String.valueOf(extraPlayers)));
-            footer.name(DefaultFont.center(footer.name(), footer.length(), totalWidth));
-            assembledRows.add(footer);
-        }
-
-
-
-        return assembledRows;
-    }
-
-    public static List<String> format(List<Text> players, List<Text> info, Text header, Text footer, boolean justify) {
-        /*
-        players.addAll(Arrays.asList(
-                new Text("TestPlayer1"),
-                new Text("TestPlayer2"),
-                new Text("TestPlayer3"),
-                new Text("TestPlayer4"),
-                new Text("TestPlayer5"),
-                new Text("TestPlayer6"),
-                new Text("TestPlayer7"),
-                new Text("TestPlayer8"),
-                new Text("TestPlayer9"),
-                new Text("TestPlayer10"),
-                new Text("TestPlayer11"),
-                new Text("TestPlayer12"),
-                new Text("TestPlayer13"),
-                new Text("TestPlayer14"),
-                new Text("TestPlayer15"),
-                new Text("TestPlayer16"),
-                new Text("TestPlayer17"),
-                new Text("TestPlayer18"),
-                new Text("TestPlayer19"),
-                new Text("TestPlayer20"),
-                new Text("TestPlayer21"),
-                new Text("TestPlayer22"),
-                new Text("TestPlayer23"),
-                new Text("TestPlayer24"),
-                new Text("TestPlayer25"),
-                new Text("TestPlayer26"),
-                new Text("TestPlayer27"),
-                new Text("TestPlayer28"),
-                new Text("TestPlayer29"),
-                new Text("TestPlayer30")
-        ));
-
-         */
-        List<String> sample = new LinkedList<>();
-        createColumnGroup(players, header, footer, 12, 2, justify).forEach(row -> sample.add(row.name()));
-        return sample;
-
-        /*
-        final int columnCapacity = Math.max(info.size(),
-                20
-        );
-
-        final int originalPlayerLength = players.size();
-
-        players.addAll(Collections.nCopies(columnCapacity - (players.size() % columnCapacity), "\0"));
-
-        final int playerColumnCount = players.size() / columnCapacity;
-
-
-        final List<List<String>> rows = new LinkedList<>();
-
-        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
-
-
+        int originalPlayerLength = players.size();
+        players.addAll(Collections.nCopies(columnCapacity - players.size() % columnCapacity, "\0"));
+        int playerColumnCount = players.size() / columnCapacity;
+        List<List<String>> rows = new LinkedList<>();
+        HashMap<Integer, Integer> columnWidths = new HashMap<>();
         for (int col = 0; col < playerColumnCount; col++) {
             int columnWidth = 0;
-            for (int row = 0; row < columnCapacity; row++) {
-                columnWidth = Math.max(columnWidth, DefaultFont.getStringLength(players.get(col * columnCapacity + row)));
-            }
+            for (int i = 0; i < columnCapacity; i++)
+                columnWidth = Math.max(columnWidth, DefaultFont.getStringLength(players.get(col * columnCapacity + i), false)) +
+                        (justifyType == JustifyType.CENTER ? DefaultFont.getStringLength( "", false) : 0);
             columnWidths.put(col, columnWidth);
         }
-
         int infoWidth = 0;
         for (String infoRow : info) {
-            infoWidth = Math.max(infoWidth, DefaultFont.getStringLength(infoRow));
+            infoWidth = Math.max(infoWidth, DefaultFont.getStringLength(infoRow, false));
         }
         infoWidth += 4;
-
-
         for (int row = 0; row < columnCapacity; row++) {
             List<String> rowContent = new LinkedList<>();
-            for (int col = 0; col < playerColumnCount; col++) {
-                String name = players.get(col * columnCapacity + row);
+            for (int i = 0; i < playerColumnCount; i++) {
+                String name = players.get(i * columnCapacity + row);
                 if (!name.equals("\0") || row < info.size()) {
                     name = name.replace("\0", "");
-                    if (justify) {
-                        rowContent.add(
-                                RESET +
-                                        name +
-                                        BLACK +
-                                        DefaultFont.getPadding(
-                                                columnWidths.get(col) - DefaultFont.getStringLength(name)
-                                        ) +
-                                        RESET
-                        );
-                    } else {
-                        rowContent.add(
-                                RESET +
-                                        BLACK +
-                                        DefaultFont.getPadding(
-                                                columnWidths.get(col) - DefaultFont.getStringLength(name)
-                                        ) +
-                                        RESET +
-                                        name
-                        );
+                    switch (justifyType) {
+                        default:
+                        case LEFT:
+                            rowContent.add(RESET + name + BLACK +
+                                    getPadding(columnWidths.get(i) - DefaultFont.getStringLength(name, false)) + RESET);
+                            break;
+                        case RIGHT:
+                            rowContent.add(RESET + BLACK +
+                                    getPadding(columnWidths.get(i) - DefaultFont.getStringLength(name, false)) +
+                                    RESET + name + RESET);
+                            break;
+                        case CENTER:
+                            rowContent.add(RESET + BLACK +
+                                    getPadding((columnWidths.get(i) - DefaultFont.getStringLength(name, false)/2)) +
+                                    RESET + name + RESET + BLACK +
+                                    getPadding((columnWidths.get(i) - DefaultFont.getStringLength(name, false)/2)) + RESET);
+                            break;
                     }
                 }
             }
             if (row < info.size()) {
-                String name = info.get(row);
-                rowContent.add(
-                        BLACK +
-                                DefaultFont.getPadding((infoWidth - DefaultFont.getStringLength(name)) / 2) +
-                                RESET +
-                                name
-                );
+                String infoRow = info.get(row);
+                rowContent.add(BLACK +
+
+                        getPadding((infoWidth - DefaultFont.getStringLength(infoRow, false)) / 2) + RESET + infoRow);
             }
-            if (!rowContent.isEmpty()) {
+            if (!rowContent.isEmpty())
                 rows.add(rowContent);
-            }
         }
-        final List<String> finalizedRows = new LinkedList<>();
+        List<String> finalizedRows = new LinkedList<>();
         int totalWidth = 0;
-        for (List<String> row : rows) {
+        for (List<String> list : rows) {
             int rowWidth = 0;
             StringBuilder rowContent = new StringBuilder();
-            for (String col : row) {
-                rowWidth += DefaultFont.getStringLength(col);
-                rowContent.append(col);
+            for (String str : list) {
+                rowWidth += DefaultFont.getStringLength(str, false);
+                rowContent.append(str);
             }
-            final String content = rowContent.toString();
-            //System.out.println(content + "|" + content.length());
-            if (!content.isEmpty()) {
+            String content = rowContent.toString();
+            if (!content.isEmpty())
                 finalizedRows.add(content);
-            }
             totalWidth = Math.max(totalWidth, rowWidth);
         }
-
         LinkedList<String> sample = new LinkedList<>();
-
-        //System.out.println(totalWidth);
-        //System.out.println(DefaultFont.getStringLength(header));
-
-        sample.add(
-                BLACK +
-                        DefaultFont.getPadding((Math.max(0,
-                                totalWidth - DefaultFont.getStringLength(header)
-                        )) / 2) +
-                        RESET +
-                        header
-        );
-
+        if (header != null) {
+            sample.add(RESET + header);
+        }
         sample.addAll(finalizedRows);
-         */
-        //return new LinkedList<>();
-    }
-        /*
-        final int maximumPlayersInColumn = Math.max(20, info.size());
-
-        final int totalPlayerColumns = players.size() / maximumPlayersInColumn + (players.size() % maximumPlayersInColumn == 0 ? 0 : 1);
-
-
-        final HashMap<Integer, Integer> columnWidths = new HashMap<>();
-        final HashMap<Integer, Integer> rowsInColumn = new HashMap<>();
-
-        int totalWidth = 0;
-        for (int column = 0; column < totalPlayerColumns; column++) {
-            int maximumColumnWidth = 0;
-            int columnRowCount = 0;
-            for (int row = 0; row < maximumPlayersInColumn; row++) {
-                if (column * maximumPlayersInColumn + row < players.size()) {
-                    maximumColumnWidth = Math.max(maximumColumnWidth, DefaultFont.getStringLength(players.get(column * maximumPlayersInColumn + row)));
-                    columnRowCount ++;
-                }
-            }
-            columnWidths.put(column, maximumColumnWidth);
-            rowsInColumn.put(column, columnRowCount);
-            totalWidth += maximumColumnWidth;
-            //System.out.println(maximumColumnWidth);
+        if (overflow && extra != null) {
+            sample.add(RESET + extra);
         }
-
-        final LinkedList<StringBuilder> rows = new LinkedList<>();
-
-        for (int row = 0; row < maximumPlayersInColumn; row ++) {
-            StringBuilder rowContent = new StringBuilder();
-            for (int column = 0; column< totalPlayerColumns; column++) {
-                String name = "";
-                if (row < rowsInColumn.get(column)) {
-                    name = players.get(column * maximumPlayersInColumn + row);
-                    //System.out.println(names.get(column * maximumPlayersInColumn + row));
-                }
-                final int nameLength = DefaultFont.getStringLength(name);
-                final int paddingLength = Math.max(0,  columnWidths.get(column) - nameLength);
-                rowContent.append(name).append(BLACK).append(getPadding(paddingLength)).append(RESET);
-            }
-            if (row < info.size()) {
-                rowContent.append(info.get(row));
-            }
-            totalWidth = Math.max(totalWidth, DefaultFont.getStringLength(rowContent.toString()));
-            rows.add(rowContent);
+        if (footer != null) {
+            sample.add(RESET + footer);
         }
-        final int headerLength = DefaultFont.getStringLength(header)+4;
-        totalWidth = Math.max(totalWidth, headerLength);
-        sample.add(getPadding(totalWidth-headerLength) + header);
-        for (StringBuilder row : rows) {
-            sample.add(row.toString());
-        }
-        //System.out.println(sample);
 
         return sample;
     }
-    */
 
 
+    public static List<String> joinColumns(List<List<String>> cols) {
+        // Copy
+        List<List<String>> columns = cols.stream().map(
+                ArrayList::new
+        ).collect(Collectors.toList());
 
+        int maxRows = 0;
+        for (List<String> column : columns) {
+            maxRows = Math.max(maxRows, column.size());
+        }
 
+        for (List<String> column : columns) {
+            if (column.size() < maxRows) {
+                int columnWidth = 0;
+                for (String row : column) {
+                    columnWidth = Math.max(columnWidth, DefaultFont.getStringLength(row, false));
+                }
+                column.addAll(Collections.nCopies(maxRows - column.size(), DefaultFont.getPadding(columnWidth - 4)));
+            }
+        }
+
+        List<String> joined = new ArrayList<>();
+
+        for (int row = 0; row < maxRows; row ++) {
+            int finalRow = row;
+            joined.add(columns.stream().map(col -> col.get(finalRow)).collect(Collectors.joining("")));
+        }
+
+        return Collections.unmodifiableList(joined);
+    }
+
+    private static String getPadding(int paddingLength) {
+        switch ((paddingLength == 0) ? 0 : (paddingLength % 4)) {
+            default:
+            case 0:
+                return (new String(new char[paddingLength / 4 + 1])).replace("\0", " ");
+            case 1:
+                return (new String(new char[paddingLength / 4])).replace("\0", " ") + ".`";
+            case 2:
+                return (new String(new char[paddingLength / 4 + 1])).replace("\0", " ") + ".";
+            case 3:
+                break;
+        }
+        return (new String(new char[paddingLength / 4 + 1])).replace("\0", " ") + "`";
+    }
 }
+
+
+

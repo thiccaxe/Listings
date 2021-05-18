@@ -5,4 +5,8 @@ public interface ListingsPlugin {
     default void log(String message) {
         System.out.println("[Listings] " +  message);
     }
+
+    boolean cached();
+    void setCache();
+
 }
