@@ -1,5 +1,6 @@
 package net.thiccaxe.listings.paper;
 
+import com.destroystokyo.paper.event.server.GS4QueryEvent;
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -10,12 +11,14 @@ import net.thiccaxe.listings.Formatter;
 import net.thiccaxe.listings.ListingsPlugin;
 import net.thiccaxe.listings.config.Configuration;
 import net.thiccaxe.listings.config.ServerType;
+import net.thiccaxe.listings.paper.config.PaperConfiguration;
 import net.thiccaxe.listings.text.DefaultFont;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -32,7 +35,7 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
 
     private File dataFolder;
     private static Logger logger;
-    private Configuration configuration;
+    private PaperConfiguration configuration;
 
     private long lastCacheUpdate = 0;
 
@@ -44,7 +47,7 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             this.dataFolder = getDataFolder();
             logger = getLogger();
-            configuration = new Configuration(this.dataFolder, this, ServerType.SERVER);
+            configuration = new PaperConfiguration(this.dataFolder, this, ServerType.SERVER);
             configuration.setUpFile();
             lastType = configuration.getServerType();
             Objects.requireNonNull(getCommand("listings")).setExecutor(this);
@@ -65,6 +68,13 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
             cache = handlePing(event);
         }
         event.getPlayerSample().addAll(cache);
+    }
+
+    @EventHandler
+    public void onQuery(GS4QueryEvent event) {
+        if (configuration.vanishEnabled() && configuration.queryEnabled()) {
+            event.setResponse(event.getResponse().toBuilder().clearPlayers().players(Collections.unmodifiableCollection(Bukkit.getOnlinePlayers()).stream().filter(this::isNotVanished).map(HumanEntity::getName) .collect(Collectors.toList())).build());
+        }
     }
 
     public void log(String message) {

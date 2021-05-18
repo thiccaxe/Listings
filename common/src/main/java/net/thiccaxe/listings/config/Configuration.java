@@ -33,7 +33,6 @@ public class Configuration {
     private String header = null;
     private String footer = null;
     private String extra = null;
-    private boolean vanish = true;
     private @NotNull String format = "";
     private int cache = 0;
     private @NotNull List<String> info = Collections.emptyList();
@@ -150,7 +149,6 @@ public class Configuration {
                 ConfigurationNode config = root.node("configuration");
                 maximumColumns = config.node("maximumColumns").getInt(3);
                 maximumRows = config.node("maximumRows").getInt(15);
-                vanish = config.node("vanish").getBoolean(true);
                 ConfigurationNode headerNode = config.node("header");
                 header = headerNode.node("header").getString("");
                 if (!headerNode.node("enabled").getBoolean(false)) {
@@ -192,9 +190,7 @@ public class Configuration {
         return maximumRows;
     }
 
-    public boolean vanishEnabled() {
-        return vanish;
-    }
+
 
     public @NotNull Integer getCacheTimeout() {
         return cache;
