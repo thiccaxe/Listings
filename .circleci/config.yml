@@ -38,5 +38,9 @@ jobs:
             - ~/.gradle
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
-      # run tests!
+      # make a fat jar!
       - run: gradle shadowJar
+      - store_artifacts:
+          path: ~/paper/build/libs
+      - store_artifacts:
+          path: ~/velocity/build/libs
