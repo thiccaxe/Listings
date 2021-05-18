@@ -44,6 +44,5 @@ jobs:
           path: ./paper/build/libs
       - store_artifacts:
           path: ./velocity/build/libs
-      - run: gradle publish
       - store_artifacts:
-          path: ./
+          path: ./minestom/build/libs
