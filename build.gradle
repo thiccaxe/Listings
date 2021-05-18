@@ -1,55 +1,86 @@
 plugins {
-    id 'java'
-    id 'com.github.johnrengelman.shadow' version '6.1.0'
+    id 'net.minecrell.licenser' version '0.4.1' apply false
+    id 'com.github.johnrengelman.shadow' version '5.2.0' apply false
 }
 
-group 'net.thiccaxe.listings'
-version '1.1.0'
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+defaultTasks 'licenseFormat', 'build'
 
-
-repositories {
-    mavenCentral()
-}
-
-
-
-configure(subprojects.findAll {it.name != "examples"}) {
-    group project.group
-    version parent.version
-
+subprojects {
     apply plugin: 'java'
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
+    apply plugin: 'net.minecrell.licenser'
     apply plugin: 'com.github.johnrengelman.shadow'
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
 
-    shadowJar {
-        archiveFileName = "Listings-$project.name-$parent.version" + ".jar"
+    group = 'net.thiccaxe.listings'
+    version = '1.1.0'
+
+    sourceCompatibility = 11
+    targetCompatibility = 11
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
     }
+
+    jar {
+        from '../LICENSE.txt'
+    }
+
+    project.ext.majorVersion = '1'
+    project.ext.minorVersion = '2'
+    project.ext.patchVersion = '0'
+    project.ext.apiVersion = project.ext.majorVersion + '.' + project.ext.minorVersion
+    project.ext.fullVersion = project.ext.apiVersion + '.' + project.ext.patchVersion
+
+    license {
+        header = rootProject.file('HEADER.txt')
+        include '**/*.java'
+        newLine = true
+    }
+
     repositories {
         mavenCentral()
-        maven { url 'https://papermc.io/repo/repository/maven-public/' }
         maven {
             name = "sonatype-oss-snapshots"
             url = "https://oss.sonatype.org/content/repositories/snapshots/"
         }
         maven {
+            name = "placeholderapi"
             url = 'https://repo.extendedclip.com/content/repositories/placeholderapi/'
         }
         maven {
-            url = "https://hub.spigotmc.org/nexus/content/groups/public/"
+            name = 'velocity'
+            url 'https://nexus.velocitypowered.com/repository/maven-public/'
         }
         maven {
-            name 'velocity'
-            url 'https://nexus.velocitypowered.com/repository/maven-public/'
+            name = "papermc"
+            url 'https://papermc.io/repo/repository/maven-public/'
+        }
+        maven {
+            name = "jitpack"
+            url "https://jitpack.io"
         }
     }
 
+    dependencies {
+        implementation 'org.jetbrains:annotations:20.1.0'
+    }
+    publishing {
+        publications {
+            listings(MavenPublication) {
+                artifacts {
+                    archives shadowJar
+                }
 
-}
+            }
+        }
 
-
-dependencies {
+        repositories {
+            maven {
+                name = 'local'
+                url = "$rootProject.buildDir/repo"
+            }
+        }
+    }
 
 }

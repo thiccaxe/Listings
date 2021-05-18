@@ -1,0 +1,3 @@
+dependencies {
+    compileOnly 'com.github.Minestom:Minestom:5ddda986a7'
+}

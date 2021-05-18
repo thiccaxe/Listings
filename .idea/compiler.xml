@@ -43,6 +43,9 @@
         <module name="Listings.velocity.main" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel target="1.8" />
+    <bytecodeTargetLevel target="11">
+      <module name="Listings.main" target="11" />
+      <module name="Listings.test" target="11" />
+    </bytecodeTargetLevel>
   </component>
 </project>
