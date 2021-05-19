@@ -3,3 +3,7 @@ dependencies {
     api 'org.spongepowered:configurate-core:4.0.0'
     api 'org.spongepowered:configurate-hocon:4.0.0'
 }
+
+shadowJar {
+    relocate 'org.spongepowered.configurate', 'net.thiccaxe.listings.libs.configurate'
+}

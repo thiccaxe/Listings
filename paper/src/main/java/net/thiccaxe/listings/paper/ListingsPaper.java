@@ -55,7 +55,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class ListingsPaper extends JavaPlugin implements Listener, CommandExecutor, ListingsPlugin {
+public class ListingsPaper extends JavaPlugin implements Listener, CommandExecutor, ListingsPlugin<PlayerProfile, Player> {
 
     private File dataFolder;
     private static Logger logger;
@@ -110,7 +110,6 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
         try {
             if (sender.hasPermission("listings.reload") || sender.isOp() || sender instanceof ConsoleCommandSender) {
                 configuration.reload();
-                log("Reloaded!");
                 sender.sendMessage(MiniMessage.get().parse(configuration.getReloadedMessage()));
 
                 return true;
@@ -126,6 +125,11 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
 
     }
 
+    private List<PlayerProfile> handlePing(PaperServerListPingEvent event) {
+        return handleBackendServerPing(() -> new ArrayList<>(Bukkit.getServer().getOnlinePlayers())
+                .stream().filter(this::isNotVanished).collect(Collectors.toList()));
+    }
+
     @Override
     public boolean cached() {
         return (System.currentTimeMillis() - lastCacheUpdate < (configuration.getCacheTimeout()*1000));
@@ -136,64 +140,18 @@ public class ListingsPaper extends JavaPlugin implements Listener, CommandExecut
         lastCacheUpdate = System.currentTimeMillis();
     }
 
-    private List<PlayerProfile> handlePing(PaperServerListPingEvent event) {
-        List<String> response = new ArrayList<>();
-        List<Player> players = new ArrayList<>(Bukkit.getServer().getOnlinePlayers())
-                .stream().filter(this::isNotVanished).collect(Collectors.toList());
-        if (configuration.getServerType() == ServerType.SERVER) {
-            if (configuration.getHeader() != null) {
-                response.add("[HEADER]");
-                response.add(fullParse(null, configuration.getHeader()));
-            }
-            if (configuration.getFooter() != null) {
-                response.add("[FOOTER]");
-                response.add(fullParse(null, configuration.getFooter()));
-            }
-            if (configuration.getExtra() != null) {
-                response.add("[EXTRA]");
-                response.add(fullParse(null, configuration.getExtra()));
-            }
-            if (configuration.getInfo().size() > 0) {
-                response.add("[INFO]");
-                response.add(String.valueOf(configuration.getInfo().size()));
-                response.addAll(configuration.getInfo().stream().map(info -> fullParse(null, info)).collect(Collectors.toList()));
-            }
-            if (players.size() > 0) {
-                response.add("[PLAYERS]");
-                response.add(String.valueOf(players.size()));
-                players.forEach(player -> response.add(fullParse(player, configuration.getFormat())));
-            }
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
+    }
 
-        } else {
-            String header = configuration.getHeader();
-            if (header != null) {
-                header = header.replace("{ONLINE}", String.valueOf(players.size()));
-            }
-            String footer = configuration.getHeader();
-            if (footer != null) {
-                footer = footer.replace("{ONLINE}", String.valueOf(players.size()));
-            }
-            String extra = configuration.getExtra();
-            response.addAll(Formatter.format(players.stream().map(
-                    player -> fullParse(player, configuration.getFormat())
-            ).collect(Collectors.toList()),
-                    configuration.getInfo().stream().map(
-                            info -> fullParse(null, info)
-                    ).collect(Collectors.toList()),
-                    fullParse(null, header),
-                    fullParse(null, footer),
-                    extra != null ? fullParse(null, extra) : null,
-                    configuration.getMaximumColumns(),
-                    configuration.getMaximumRows(),
-                    configuration.getJustifyType()
-            ));
-        }
-        return response.stream().map(string -> Bukkit.createProfile(UUID.randomUUID(), string)).collect(Collectors.toList());
-
+    @Override
+    public PlayerProfile fromString(String name) {
+        return Bukkit.createProfile(UUID.randomUUID(), name);
     }
 
 
-    private String fullParse(Player player, String string) {
+    public String fullParse(Player player, String string) {
         return LegacyComponentSerializer.legacySection().serialize(
                 MiniMessage.get().parse(
                         PlaceholderAPI.setPlaceholders(player, string)
